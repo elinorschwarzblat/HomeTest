@@ -1,9 +1,6 @@
 package com.project.myProject.controller;
 
 import java.util.List;
-
-import javax.persistence.EntityNotFoundException;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,58 +27,89 @@ public class ItemController {
 	public String helloWorld(){
 		return "test";
 	}	
-
+	
+	
+	//GET LIST
 	@ApiOperation(value="Returns the inventory list")
 	@RequestMapping(value="Items",method=RequestMethod.GET)
 	public List<Item> list(){
 		return itemRepository.findAll();
 	}
 	
+	
+	//CREATE ITEAM
 	@ApiOperation(value="Add a new item to the inventory list")
 	@RequestMapping(value="Items",method=RequestMethod.POST)
 	public Item create(@RequestBody Item item){
 		return itemRepository.saveAndFlush(item);
-		//return ItemStub.create(item);
 	}
 	
+	//GET ITEAM
 	@ApiOperation(value="Returns item details by item-ID")
 	@RequestMapping(value="Items/{id}",method=RequestMethod.GET)
 	public Item get(@PathVariable Integer id){
+		if (!isValidArgs(id)) {
+			return null;}
 		return itemRepository.getOne(id);
-		//return ItemStub.get(id);
 	}
 	
+	
+	//DELETE ITEAM
 	@ApiOperation(value="Delete item by item-ID")
 	@RequestMapping(value="Items/{id}",method=RequestMethod.DELETE)
-	public void delete(@PathVariable Integer id){
-		Item item = itemRepository.getOne(id);
-		itemRepository.delete(item);
-		return;
-		//return ItemStub.delete(id);
+	public String delete(@PathVariable Integer id){
+		if (!isValidArgs(id)) {
+			return "Operation failed.\nThe given item-id doesn't exist";}
+		
+		itemRepository.delete(itemRepository.getOne(id));
+		return "Successfully deleted item.";
 	}
 	
+	
+	//DEPOSIT
 	@ApiOperation(value="Deposit quantity of a specific item to stock")
 	@RequestMapping(value="Items/deposit/{id}/{amount}",method=RequestMethod.PUT)
-	public Item deposit(@PathVariable Integer id,@PathVariable Integer amount){
-		Item item = itemRepository.getOne(id);
-		item.setAmount(item.getAmount()+amount);
-		return itemRepository.saveAndFlush(item);
+	public String deposit(@PathVariable Integer id,@PathVariable Integer amount){
+		if (!isValidArgs(id,amount)) {
+			return "Operation failed.\nInvalid args.please try again.";}
 		
-		//return ItemStub.deposit(id, amount);
+		Item item=itemRepository.getOne(id);
+		item.setAmount(item.getAmount()+amount);
+		itemRepository.saveAndFlush(item);
+		return "Your deposit was successful.";		
 	}
 	
+	
+	//WITHDRAWAL
 	@ApiOperation(value="Withdrawal quantity of a specific item from stock")
 	@RequestMapping(value="Items/withdrawal/{id}/{amount}",method=RequestMethod.PUT)
-	public Item withdrawal(@PathVariable Integer id, @PathVariable Integer amount){
-		Item item = itemRepository.getOne(id);
-		if (item.getAmount()>=amount) {
-		item.setAmount(item.getAmount()-amount);
-		return itemRepository.saveAndFlush(item);
-		}
-		//dont do anything
-		return item;
+	public String withdrawal(@PathVariable Integer id, @PathVariable Integer amount){
+		if (!isValidArgs(id,amount)) {
+			return "Operation failed.\nInvalid args.please try again.";}
+		
+		Item item=itemRepository.getOne(id);
+		int newAmount=item.getAmount()-amount;
+		
+		if (newAmount<0) {
+			return "Operation failed.\nThe requested quantity is not available";}
+		
+		else if (newAmount==0) {
+			itemRepository.delete(item);
+			return "Your withdrawal was successful.\n Note: Now this item is out of stock.";}
+		
+		item.setAmount(newAmount);
+		itemRepository.saveAndFlush(item);
+		return "Your withdrawal was successful.";		
 	}
-
+	
+	
+	//HELP METHODS
+	public boolean isValidArgs(Integer id) {
+		return (itemRepository.findById(id).isPresent());
+	}
+	public boolean isValidArgs(Integer id,Integer amount) {
+		return (amount>0 && itemRepository.findById(id).isPresent());
+	}
 	
 
 }
