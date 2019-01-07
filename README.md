@@ -12,6 +12,8 @@ https://cloud.docker.com/repository/docker/elinorsch/inventoryproject
     
 this spring-boot application expose a Swagger API catalog.
 
+http://localhost:8080/swagger-ui.html
+
 The application expose the following APIs:
 
 -GET LIST
